@@ -6,9 +6,10 @@ import {
   Search,
   UserMinus,
   UserPlus,
+  Users,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FriendRequest, FriendsTab, User } from "../types";
 import { Avatar } from "./Avatar";
 
@@ -19,6 +20,7 @@ interface FriendsViewProps {
   pending: FriendRequest[];
   blocked: User[];
   onAddFriend: () => void;
+  onNewGroupDm: () => void;
   onMessage: (userId: string) => void;
   onAccept: (userId: string) => void;
   onDecline: (userId: string) => void;
@@ -42,6 +44,7 @@ export function FriendsView({
   pending,
   blocked,
   onAddFriend,
+  onNewGroupDm,
   onMessage,
   onAccept,
   onDecline,
@@ -74,43 +77,54 @@ export function FriendsView({
   }, [tab, friends, onlineFriends, blocked, search]);
 
   return (
-    <div className="flex flex-1 flex-col bg-hiqu-bg">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-hiqu-border px-4">
-        <div className="flex items-center gap-4">
-          <span className="font-semibold">Arkadaşlar</span>
-          <div className="h-6 w-px bg-hiqu-border" />
-          <div className="flex gap-1">
+    <div className="hiqu-main flex flex-1 flex-col">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-hiqu-border/60 px-4 shadow-sm">
+        <div className="flex h-full items-center gap-4">
+          <span className="font-semibold text-hiqu-muted">Arkadaşlar</span>
+          <div className="h-6 w-px bg-hiqu-border/80" />
+          <div className="flex h-full items-stretch gap-1">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => onTabChange(t.id)}
-                className={`rounded px-2 py-1 text-sm transition-colors ${
+                className={`relative px-2 py-1 text-sm transition-colors ${
                   tab === t.id
-                    ? "bg-hiqu-hover text-hiqu-text"
+                    ? "hiqu-friends-tab-active text-hiqu-text"
                     : "text-hiqu-muted hover:text-hiqu-text"
                 }`}
               >
                 {t.label}
                 {t.id === "pending" && pending.length > 0 && (
-                  <span className="ml-1 rounded-full bg-hiqu-dnd px-1.5 text-xs">{pending.length}</span>
+                  <span className="ml-1 rounded-full bg-hiqu-dnd px-1.5 text-xs text-white">
+                    {pending.length}
+                  </span>
                 )}
               </button>
             ))}
           </div>
         </div>
-        <button
-          onClick={onAddFriend}
-          className="flex items-center gap-2 rounded bg-hiqu-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-hiqu-accent-hover"
-        >
-          <UserPlus className="size-4" />
-          Arkadaş Ekle
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onNewGroupDm}
+            title="Yeni Grup DM"
+            className="flex size-9 items-center justify-center rounded-full text-hiqu-muted transition-colors hover:bg-hiqu-hover hover:text-hiqu-text"
+          >
+            <Users className="size-5" />
+          </button>
+          <button
+            onClick={onAddFriend}
+            className="flex items-center gap-2 rounded bg-hiqu-accent px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-hiqu-accent-hover"
+          >
+            <UserPlus className="size-4" />
+            Arkadaş Ekle
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4">
         {tab !== "pending" && (
           <>
-            <div className="mb-4 flex items-center gap-2 rounded-md bg-hiqu-panel px-3 py-2">
+            <div className="hiqu-main-search mb-4 flex items-center gap-2 rounded-md px-3 py-2">
               <Search className="size-4 text-hiqu-muted" />
               <input
                 value={search}
@@ -205,9 +219,21 @@ function FriendRow({
   isBlocked: boolean;
 }) {
   const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menu]);
 
   return (
-    <div className="group relative mb-1 flex items-center gap-3 rounded-md px-2 py-2 hover:bg-hiqu-panel/80">
+    <div ref={menuRef} className="group relative mb-1 flex items-center gap-3 rounded-md px-2 py-2 hover:bg-hiqu-hover/50">
       <Avatar src={user.avatar} alt={user.name} size="md" status={user.status} />
       <div className="min-w-0 flex-1">
         <p className="font-medium">{user.name}</p>

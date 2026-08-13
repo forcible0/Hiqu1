@@ -13,6 +13,7 @@ interface AvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   status?: Status;
   className?: string;
+  statusBorderClass?: string;
 }
 
 const sizeClasses = {
@@ -29,9 +30,16 @@ const statusSizeClasses = {
   xl: "size-5 border-[3px]",
 };
 
-export function Avatar({ src, alt, size = "md", status, className = "" }: AvatarProps) {
+export function Avatar({
+  src,
+  alt,
+  size = "md",
+  status,
+  className = "",
+  statusBorderClass = "border-hiqu-panel",
+}: AvatarProps) {
   return (
-    <div className={`relative shrink-0 ${className}`}>
+    <div className={`relative inline-flex shrink-0 ${className}`}>
       <img
         src={src}
         alt={alt}
@@ -39,7 +47,7 @@ export function Avatar({ src, alt, size = "md", status, className = "" }: Avatar
       />
       {status && status !== "offline" && (
         <span
-          className={`absolute bottom-0 right-0 rounded-full border-hiqu-panel ${statusColors[status]} ${statusSizeClasses[size]}`}
+          className={`absolute bottom-0 right-0 rounded-full ${statusBorderClass} ${statusColors[status]} ${statusSizeClasses[size]}`}
         />
       )}
     </div>

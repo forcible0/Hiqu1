@@ -1,4 +1,4 @@
-import { Compass, Plus } from "lucide-react";
+import { Compass, Home, Plus } from "lucide-react";
 import type { Server } from "../types";
 
 interface ServerSidebarProps {
@@ -19,7 +19,7 @@ export function ServerSidebar({
   onJoinServer,
 }: ServerSidebarProps) {
   return (
-    <aside className="flex w-[72px] shrink-0 flex-col items-center gap-2 bg-hiqu-surface py-3">
+    <aside className="hiqu-server-rail flex w-[72px] shrink-0 flex-col items-center gap-2 py-3">
       <button
         onClick={onSelectHome}
         className="group relative flex size-12 items-center justify-center"
@@ -31,13 +31,18 @@ export function ServerSidebar({
           }`}
         />
         <span
-          className={`flex size-12 items-center justify-center rounded-2xl text-xl transition-all ${
+          className={`flex size-12 items-center justify-center rounded-2xl transition-all ${
             activeId === "home"
               ? "rounded-xl bg-hiqu-accent"
               : "bg-hiqu-elevated hover:rounded-xl hover:bg-hiqu-accent"
           }`}
         >
-          🌙
+          <Home
+            className={`size-[22px] transition-colors ${
+              activeId === "home" ? "text-white" : "text-hiqu-text group-hover:text-white"
+            }`}
+            strokeWidth={2.25}
+          />
         </span>
       </button>
 

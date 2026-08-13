@@ -11,8 +11,8 @@ export function MembersSidebar({ members, title = "Üyeler" }: MembersSidebarPro
   const offline = members.filter((m) => m.status === "offline" || m.status === "dnd");
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col bg-hiqu-panel">
-      <header className="flex h-12 shrink-0 items-center border-b border-hiqu-border px-4">
+    <aside className="hiqu-sidebar flex w-60 shrink-0 flex-col">
+      <header className="flex h-12 shrink-0 items-center border-b border-hiqu-border/60 px-4 shadow-sm">
         <span className="font-semibold">{title}</span>
       </header>
       <div className="flex-1 overflow-y-auto p-3">

@@ -5,14 +5,25 @@ const YOUTUBE_RE =
 
 export function detectEmbed(content: string): MessageEmbed | null {
   const match = content.match(YOUTUBE_RE);
-  if (!match) return null;
-  const videoId = match[1];
-  return {
-    type: "youtube",
-    title: "YouTube Video",
-    url: `https://www.youtube.com/watch?v=${videoId}`,
-    thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-  };
+  if (match) {
+    const videoId = match[1];
+    return {
+      type: "youtube",
+      title: "YouTube Video",
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+    };
+  }
+
+  const gifMatch =
+    content.match(/https?:\/\/[^\s]+\.(gif|webp)(\?[^\s]*)?/i) ??
+    content.match(/https?:\/\/media\.giphy\.com\/media\/[^\s]+\/giphy\.gif/i);
+  if (gifMatch) {
+    const url = gifMatch[0];
+    return { type: "gif", title: "GIF", url, thumbnail: url };
+  }
+
+  return null;
 }
 
 export function formatTimestamp(ms: number): string {

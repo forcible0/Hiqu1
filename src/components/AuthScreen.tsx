@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface AuthScreenProps {
-  onLogin: (login: string, password: string) => Promise<void>;
+  onLogin: (login: string, password: string, remember: boolean) => Promise<void>;
   onRegister: (data: {
     email: string;
     username: string;
@@ -10,6 +10,8 @@ interface AuthScreenProps {
   }) => Promise<void>;
 }
 
+const REMEMBER_KEY = "hiqu_remember_me";
+
 export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -17,6 +19,7 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loginValue, setLoginValue] = useState("");
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem(REMEMBER_KEY) !== "0");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +28,7 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
     setError("");
     setLoading(true);
     try {
-      await onLogin(loginValue.trim(), password);
+      await onLogin(loginValue.trim(), password, rememberMe);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Giriş başarısız");
     } finally {
@@ -100,6 +103,15 @@ export function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
               onChange={setPassword}
               placeholder="••••••••"
             />
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-hiqu-muted">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="size-4 rounded accent-hiqu-accent"
+              />
+              Beni hatırla
+            </label>
             {error && <ErrorMsg>{error}</ErrorMsg>}
             <SubmitBtn loading={loading} label="Giriş Yap" />
           </form>

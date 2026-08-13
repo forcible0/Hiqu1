@@ -1,7 +1,8 @@
 import { useState } from "react";
-import type { Status } from "../types";
+import { Check } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Modal } from "./Modal";
+import { SettingsPanel } from "./SettingsPanel";
 
 export function AppModals() {
   const {
@@ -12,12 +13,23 @@ export function AppModals() {
     joinServer,
     createChannel,
     updateProfile,
+    updateSettings,
+    changePassword,
+    updateServerSettings,
+    regenerateServerInvite,
+    uploadProfileImage,
+    uploadServerImage,
     currentUser,
     friends,
     openDm,
+    openGroupDm,
+    createGroupDm,
     openServer,
+    logout,
+    deleteAccount,
     activeServerId,
     servers,
+    settingsTab,
   } = useApp();
 
   const close = () => setActiveModal(null);
@@ -72,17 +84,45 @@ export function AppModals() {
       />
     );
   }
-  if (activeModal === "settings" && currentUser) {
+  if (activeModal === "newGroupDm") {
     return (
-      <SettingsModal
-        user={currentUser}
+      <NewGroupDmModal
+        friends={friends}
+        currentUserId={currentUser?.id ?? ""}
         onClose={close}
-        onSave={updateProfile}
-        inviteCode={
-          activeServerId !== "home"
-            ? servers.find((s) => s.id === activeServerId)?.inviteCode
-            : undefined
-        }
+        onCreate={async (memberIds, name) => {
+          const group = await createGroupDm(memberIds, name);
+          close();
+          await openGroupDm(group.id);
+        }}
+      />
+    );
+  }
+  if (activeModal === "settings" && currentUser) {
+    const activeServer =
+      activeServerId !== "home" ? servers.find((s) => s.id === activeServerId) ?? null : null;
+    return (
+      <SettingsPanel
+        account={currentUser}
+        activeServer={activeServer}
+        isServerOwner={activeServer?.ownerId === currentUser.id}
+        initialTab={settingsTab}
+        onClose={close}
+        onSaveProfile={updateProfile}
+        onUploadImage={uploadProfileImage}
+        onSaveSettings={updateSettings}
+        onChangePassword={changePassword}
+        onLogout={async () => {
+          await logout();
+          close();
+        }}
+        onDeleteAccount={async (password) => {
+          await deleteAccount(password);
+          close();
+        }}
+        onSaveServer={updateServerSettings}
+        onUploadServerImage={uploadServerImage}
+        onRegenerateInvite={regenerateServerInvite}
       />
     );
   }
@@ -277,6 +317,91 @@ function CreateChannelModal({
   );
 }
 
+function NewGroupDmModal({
+  friends,
+  currentUserId,
+  onClose,
+  onCreate,
+}: {
+  friends: { id: string; name: string; avatar: string; username: string }[];
+  currentUserId: string;
+  onClose: () => void;
+  onCreate: (memberIds: string[], name?: string) => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selected.length === 0) {
+      setError("En az bir arkadaş seçin");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await onCreate(selected, name.trim() || undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hata");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal title="Grup DM Oluştur" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <p className="text-sm text-hiqu-muted">Arkadaşlarını seçerek grup sohbeti başlat.</p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Grup adı (isteğe bağlı)"
+          className="w-full rounded-lg bg-hiqu-elevated px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-hiqu-accent"
+        />
+        {friends.length === 0 ? (
+          <p className="text-sm text-hiqu-muted">Grup oluşturmak için önce arkadaş ekleyin.</p>
+        ) : (
+          <div className="max-h-64 space-y-1 overflow-y-auto">
+            {friends
+              .filter((f) => f.id !== currentUserId)
+              .map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => toggle(f.id)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${
+                    selected.includes(f.id) ? "bg-hiqu-accent/20 ring-1 ring-hiqu-accent" : "hover:bg-hiqu-elevated"
+                  }`}
+                >
+                  <img src={f.avatar} alt="" className="size-8 rounded-full" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{f.name}</p>
+                    <p className="text-xs text-hiqu-muted">@{f.username}</p>
+                  </div>
+                  {selected.includes(f.id) && <Check className="size-4 text-hiqu-accent" />}
+                </button>
+              ))}
+          </div>
+        )}
+        {error && <p className="text-sm text-hiqu-dnd">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading || selected.length === 0}
+          className="w-full rounded-lg bg-hiqu-accent py-2.5 text-sm font-semibold text-white hover:bg-hiqu-accent-hover disabled:opacity-50"
+        >
+          Grup Oluştur
+        </button>
+      </form>
+    </Modal>
+  );
+}
+
 function NewDmModal({
   friends,
   onClose,
@@ -307,79 +432,6 @@ function NewDmModal({
           ))}
         </div>
       )}
-    </Modal>
-  );
-}
-
-function SettingsModal({
-  user,
-  onClose,
-  onSave,
-  inviteCode,
-}: {
-  user: { name: string; statusText?: string; status: Status };
-  onClose: () => void;
-  onSave: (data: { statusText?: string; status?: Status; name?: string }) => Promise<void>;
-  inviteCode?: string;
-}) {
-  const [name, setName] = useState(user.name);
-  const [statusText, setStatusText] = useState(user.statusText ?? "");
-  const [status, setStatus] = useState<Status>(user.status);
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    await onSave({ name, statusText, status });
-    setLoading(false);
-    onClose();
-  };
-
-  return (
-    <Modal title="Ayarlar" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-xs text-hiqu-muted">Görünen ad</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg bg-hiqu-elevated px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-hiqu-muted">Durum mesajı</label>
-          <input
-            value={statusText}
-            onChange={(e) => setStatusText(e.target.value)}
-            className="w-full rounded-lg bg-hiqu-elevated px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-hiqu-muted">Durum</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as Status)}
-            className="w-full rounded-lg bg-hiqu-elevated px-3 py-2 text-sm outline-none"
-          >
-            <option value="online">Çevrimiçi</option>
-            <option value="idle">Boşta</option>
-            <option value="dnd">Rahatsız Etmeyin</option>
-          </select>
-        </div>
-        {inviteCode && (
-          <div className="rounded-lg bg-hiqu-elevated p-3">
-            <p className="text-xs text-hiqu-muted">Sunucu davet kodu</p>
-            <p className="font-mono text-lg font-bold tracking-widest">{inviteCode}</p>
-          </div>
-        )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-hiqu-accent py-2.5 text-sm font-semibold text-white hover:bg-hiqu-accent-hover"
-        >
-          Kaydet
-        </button>
-      </form>
     </Modal>
   );
 }
